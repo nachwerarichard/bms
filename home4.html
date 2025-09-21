@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>5-Star Hotel Business Management System</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f3f4f6;
+        }
+        .flowchart-node {
+            transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s;
+            cursor: pointer;
+            word-wrap: break-word;
+            padding: 1rem;
+            min-height: 100px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+        }
+        .flowchart-node:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+            border-color: #4f46e5;
+        }
+        .modal-overlay {
+            background-color: rgba(0, 0, 0, 0.5);
+        }
+        .modal-content {
+            animation: slideIn 0.3s ease-out;
+        }
+        @keyframes slideIn {
+            from { transform: translateY(-50px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+        /* Style for the sidebar scrollbar */
+        .sidebar::-webkit-scrollbar {
+            width: 8px;
+        }
+        .sidebar::-webkit-scrollbar-track {
+            background: #e5e7eb;
+            border-radius: 10px;
+        }
+        .sidebar::-webkit-scrollbar-thumb {
+            background: #d1d5db;
+            border-radius: 10px;
+        }
+        .sidebar::-webkit-scrollbar-thumb:hover {
+            background: #9ca3af;
+        }
+        /* Custom styles for vertical arrows */
+        .flowchart-arrow-vertical {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 48px; /* Height of the SVG icon */
+        }
+        .flowchart-vertical-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            justify-items: center;
+            gap: 1rem;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen flex flex-col">
+
+    <header class="bg-white shadow-md p-4">
+        <div class="container mx-auto flex items-center justify-between">
+            <div class="flex items-center space-x-2">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-8 h-8 text-indigo-600">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 12h16.5m-16.5 0a2.25 2.25 0 0 1-2.25-2.25V6.75a2.25 2.25 0 0 1 2.25-2.25h16.5a2.25 2.25 0 0 1 2.25 2.25v3.938m-16.5 0h16.5m-16.5 0a2.25 2.25 0 0 0-2.25 2.25v3.938a2.25 2.25 0 0 0 2.25 2.25H3.75m16.5-16.5a2.25 2.25 0 0 1 2.25 2.25v3.938m-16.5-3.938a2.25 2.25 0 0 0-2.25 2.25v3.938a2.25 2.25 0 0 0 2.25 2.25h16.5a2.25 2.25 0 0 0 2.25-2.25V6.75a2.25 2.25 0 0 0-2.25-2.25H3.75Z" />
+                </svg>
+                <h1 class="text-2xl font-bold text-gray-800">5-Star Hotel BMS</h1>
+            </div>
+            <div class="relative w-1/3">
+                <input type="text" id="searchInput" placeholder="Search processes..." class="w-full pl-10 pr-4 py-2 rounded-full border border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition duration-300">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" />
+                </svg>
+            </div>
+        </div>
+    </header>
+
+    <main class="flex-grow container mx-auto p-4 flex">
+        
+        <aside class="w-1/4 bg-white rounded-lg shadow p-4 mr-4 flex flex-col h-full sidebar overflow-y-auto">
+            <h2 class="text-xl font-semibold text-gray-800 mb-4">Process Areas</h2>
+            <div id="processList" class="space-y-2">
+                </div>
+        </aside>
+
+        <section class="flex-grow bg-gray-50 rounded-lg shadow p-6 flex flex-col items-center justify-start">
+            <div id="currentProcessTitle" class="text-3xl font-bold text-gray-800 mb-6 text-center">Select a Process to View</div>
+            <div id="currentProcessDescription" class="text-lg text-gray-600 mb-6 text-center max-w-2xl"></div>
+            <div id="flowchartContainer" class="w-full flex justify-center flex-col items-center gap-4 p-4">
+                </div>
+        </section>
+
+    </main>
+
+    <div id="processModal" class="fixed inset-0 z-50 hidden flex items-center justify-center p-4 modal-overlay">
+        <div class="bg-white rounded-lg shadow-xl p-6 w-full max-w-2xl modal-content">
+            <div class="flex justify-between items-center pb-3 border-b-2 border-gray-200">
+                <h3 id="modalTitle" class="text-2xl font-semibold text-gray-800">Process Details</h3>
+                <button id="closeModalBtn" class="text-gray-500 hover:text-gray-800 focus:outline-none">
+                    <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                </button>
+            </div>
+            <div class="mt-4 space-y-4">
+                <div id="modalContent">
+                    <h4 class="text-xl font-medium text-gray-700">Description</h4>
+                    <p id="modalDescription" class="text-gray-600 mb-4"></p>
+                    <h4 class="text-xl font-medium text-gray-700">Why it's done</h4>
+                    <p id="modalWhy" class="text-gray-600 mb-4"></p>
+                    <h4 class="text-xl font-medium text-gray-700">Team Responsible</h4>
+                    <p id="modalTeam" class="text-gray-600 mb-4"></p>
+                    <h4 class="text-xl font-medium text-gray-700">Related Documents</h4>
+                    <ul id="modalDocuments" class="list-disc list-inside text-blue-600 space-y-1"></ul>
+                </div>
+
+                <div id="editForm" class="hidden">
+                    <h4 class="text-xl font-medium text-gray-700 mb-2">Edit Details</h4>
+                    <form id="processEditForm" class="space-y-4">
+                        <div>
+                            <label for="editTitle" class="block text-sm font-medium text-gray-700">Title</label>
+                            <input type="text" id="editTitle" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2">
+                        </div>
+                        <div>
+                            <label for="editDescription" class="block text-sm font-medium text-gray-700">Description</label>
+                            <textarea id="editDescription" rows="4" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2"></textarea>
+                        </div>
+                        <div>
+                            <label for="editWhy" class="block text-sm font-medium text-gray-700">Why it's done</label>
+                            <textarea id="editWhy" rows="3" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2"></textarea>
+                        </div>
+                        <div class="flex justify-end space-x-2">
+                            <button type="button" id="cancelEditBtn" class="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-200 rounded-md hover:bg-gray-300 transition duration-300">Cancel</button>
+                            <button type="submit" class="px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-md hover:bg-indigo-700 transition duration-300">Save</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <div class="mt-6 pt-4 border-t-2 border-gray-200 flex justify-end space-x-3">
+                <button id="editProcessBtn" class="px-4 py-2 text-sm font-medium text-white bg-green-500 rounded-md hover:bg-green-600 transition duration-300">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4 mr-2 inline-block">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Zm0 0L19.5 7.125M18 14.25v2.25H6.75A2.25 2.25 0 0 0 4.5 18.75v2.25H2.25" />
+                    </svg>
+                    Edit
+                </button>
+                <button id="closeModalBtnFooter" class="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-200 rounded-md hover:bg-gray-300 transition duration-300">
+                    Close
+                </button>
+            </div>
+        </div>
+    </div>
+
+
+    <script>
+        const businessProcesses = {
+            "guest-management": {
+                name: "Guest Management & Booking",
+                description: "This process covers the entire guest lifecycle, from initial reservation to check-out, with a focus on personalized service.",
+                flowchart: [
+                    { id: "1-1", title: "Reservation Inquiry", description: "Receive a booking request via website, phone, or a dedicated reservations agent.", team: "Reservations, Front Desk", why: "To capture potential guest interest and begin the high-touch booking process.", documents: ["VIP-Guest-Profile-Form.docx", "Seasonal-Rate-Card.xlsx"] },
+                    { id: "1-2", title: "Room Assignment & Upgrades", description: "Allocate a prime room based on guest preferences, status (e.g., loyalty tier), and potential for complimentary upgrades.", team: "Front Desk, Revenue Management", why: "To ensure guests are assigned the best possible room and feel valued, enhancing satisfaction.", documents: ["Room-Allocation-Policy.pdf", "Loyalty-Program-Benefits.pdf"] },
+                    { id: "1-3", title: "Personalized Check-in", description: "Greet guests by name, offer welcome amenities, and process payment efficiently while providing a seamless, warm arrival experience.", team: "Front Desk", why: "To officially welcome the guest and set the tone for their luxurious stay.", documents: ["Check-in-Checklist-5Star.docx", "Guest-Registration-Form.pdf"] },
+                    { id: "1-4", title: "Guest Stay & Concierge Services", description: "Provide in-house and external services, including private dining, spa bookings, and bespoke city tours.", team: "Concierge, Room Service, Guest Relations", why: "To ensure an unforgettable and comfortable guest experience tailored to their needs.", documents: ["Concierge-Service-Guide.pdf", "Local-Partnership-List.xlsx"] },
+                    { id: "1-5", title: "Express Check-out & Follow-up", description: "Offer options for express check-out, finalize the guest's bill, and send a personalized thank you note with a request for feedback.", team: "Front Desk, Finance", why: "To complete the financial transaction smoothly and maintain a strong, lasting guest relationship.", documents: ["Billing-Policy.pdf", "Post-Stay-Survey.html"] }
+                ]
+            },
+            "housekeeping-operations": {
+                name: "Housekeeping & Facilities Maintenance",
+                description: "This outlines the meticulous workflow for cleaning and maintaining the hotel to 5-star standards, including proactive maintenance.",
+                flowchart: [
+                    { id: "2-1", title: "Daily Room Status & Task Assignment", description: "Automated update of room status and assignment of cleaning tasks via a central system to staff, prioritizing VIP and early check-in rooms.", team: "Housekeeping Supervisor", why: "To provide an accurate, real-time view of room availability and ensure efficient workflow.", documents: ["Room-Management-System-Manual.pdf", "Daily-Task-Report.xlsx"] },
+                    { id: "2-2", title: "Deep Cleaning & Turndown Service", description: "Staff performs a thorough cleaning of the room, followed by a separate turndown service in the evening.", team: "Housekeeping Staff", why: "To maintain the highest standards of cleanliness and add a touch of luxury to the guest experience.", documents: ["5-Star-Cleaning-Checklist.pdf"] },
+                    { id: "2-3", title: "Proactive & Predictive Maintenance", description: "Conduct regular, scheduled checks of all facilities, from HVAC to plumbing, to prevent issues before they occur.", team: "Engineering, Maintenance", why: "To minimize guest complaints and ensure all hotel facilities are fully operational at all times.", documents: ["Maintenance-Schedule.xlsx", "Preventative-Maintenance-Checklist.pdf"] },
+                    { id: "2-4", title: "Guest-Reported Issue Resolution", description: "Log and dispatch immediate maintenance requests from guests to the appropriate team for urgent resolution.", team: "Front Desk, Maintenance", why: "To address and resolve facility issues promptly, ensuring guest satisfaction.", documents: ["Maintenance-Request-Form.html", "Issue-Resolution-SLA.pdf"] }
+                ]
+            },
+            "food-beverage": {
+                name: "Food & Beverage Operations",
+                description: "Manages all aspects of the hotel's multiple dining outlets, from kitchen operations to service.",
+                flowchart: [
+                    { id: "3-1", title: "Menu Planning & Costing", description: "Develop seasonal menus for all outlets (restaurants, bars, room service) and perform cost analysis to ensure profitability.", team: "Executive Chef, F&B Manager, Finance", why: "To offer a diverse, high-quality culinary experience and manage operational costs.", documents: ["Menu-Design-Guide.docx", "Cost-Control-Sheet.xlsx"] },
+                    { id: "3-2", title: "Inventory & Supply Chain Management", description: "Monitor and manage food and beverage stock, placing orders with approved suppliers to maintain freshness and prevent waste.", team: "F&B Manager, Kitchen Staff", why: "To ensure a continuous supply of high-quality ingredients and optimize inventory levels.", documents: ["Vendor-Contracts.pdf", "Inventory-Tracker.xlsx"] },
+                    { id: "3-3", title: "Dining Service & Quality Control", description: "Oversee the dining experience, from reservation seating to service delivery, ensuring all food and service standards are met.", team: "F&B Service Team, Restaurant Manager", why: "To deliver an exceptional, memorable dining experience that reflects the hotel's brand.", documents: ["Service-Training-Manual.pdf", "Guest-Feedback-Form.html"] },
+                    { id: "3-4", title: "Kitchen Operations", description: "Manage food preparation, hygiene, and kitchen staff scheduling to ensure seamless, high-volume production.", team: "Kitchen Staff, Executive Chef", why: "To produce consistent, high-quality meals safely and efficiently.", documents: ["Food-Safety-Protocols.pdf", "Kitchen-Schedule.xlsx"] }
+                ]
+            },
+            "marketing-loyalty": {
+                name: "Marketing & Guest Loyalty Programs",
+                description: "Focuses on attracting new guests and building lasting relationships with existing ones through targeted campaigns and exclusive loyalty benefits.",
+                flowchart: [
+                    { id: "4-1", title: "Marketing Campaign Planning", description: "Develop and plan seasonal marketing campaigns across digital and traditional channels to drive bookings.", team: "Marketing Manager", why: "To increase brand visibility, attract target demographics, and fill rooms during off-peak seasons.", documents: ["Marketing-Calendar.xlsx", "Brand-Guidelines.pdf"] },
+                    { id: "4-2", title: "Online Reputation Management", description: "Monitor and respond to guest reviews on platforms like TripAdvisor and Google to maintain a positive online image.", team: "Marketing, Guest Relations", why: "To address guest feedback directly and show a commitment to service excellence.", documents: ["Review-Response-Guidelines.pdf"] },
+                    { id: "4-3", title: "Loyalty Program Administration", description: "Manage the hotel's loyalty program, including new member enrollment, points tracking, and benefit fulfillment.", team: "Front Desk, Marketing", why: "To encourage repeat visits and reward guest loyalty with exclusive perks.", documents: ["Loyalty-Program-Structure.pdf"] }
+                ]
+            },
+            "finance-reporting": {
+                name: "Finance & Revenue Management",
+                description: "Manages the financial health of the hotel, from daily revenue tracking to long-term budgeting and forecasting.",
+                flowchart: [
+                    { id: "5-1", title: "Daily Revenue Reconciliation", description: "Collect and verify all revenue streams from the previous day, including rooms, F&B, and events.", team: "Finance, Front Desk", why: "To ensure all income is accurately recorded and identify any discrepancies.", documents: ["Daily-Revenue-Report.xlsx"] },
+                    { id: "5-2", title: "Budgeting & Expense Tracking", description: "Create and manage the hotel's budget, tracking all departmental expenses against projections.", team: "Finance", why: "To control costs and ensure the hotel operates profitably.", documents: ["Annual-Budget-Plan.xlsx", "Expense-Approval-Policy.pdf"] },
+                    { id: "5-3", title: "Financial Reporting & Analysis", description: "Generate monthly and quarterly financial reports for senior management, analyzing performance against key metrics.", team: "Finance, Senior Management", why: "To provide a clear financial overview for strategic decision-making.", documents: ["Quarterly-Financial-Statement.pdf"] }
+                ]
+            }
+        };
+
+        const processList = document.getElementById('processList');
+        const currentProcessTitle = document.getElementById('currentProcessTitle');
+        const currentProcessDescription = document.getElementById('currentProcessDescription');
+        const flowchartContainer = document.getElementById('flowchartContainer');
+        const searchInput = document.getElementById('searchInput');
+
+        const processModal = document.getElementById('processModal');
+        const closeModalBtn = document.getElementById('closeModalBtn');
+        const closeModalBtnFooter = document.getElementById('closeModalBtnFooter');
+        const editProcessBtn = document.getElementById('editProcessBtn');
+        const modalTitle = document.getElementById('modalTitle');
+        const modalDescription = document.getElementById('modalDescription');
+        const modalWhy = document.getElementById('modalWhy');
+        const modalTeam = document.getElementById('modalTeam');
+        const modalDocuments = document.getElementById('modalDocuments');
+
+        const modalContent = document.getElementById('modalContent');
+        const editForm = document.getElementById('editForm');
+        const processEditForm = document.getElementById('processEditForm');
+        const cancelEditBtn = document.getElementById('cancelEditBtn');
+
+        let currentProcessId = null;
+
+        // Function to render the main process navigation sidebar
+        function renderProcessList() {
+            processList.innerHTML = '';
+            for (const key in businessProcesses) {
+                const process = businessProcesses[key];
+                const link = document.createElement('a');
+                link.href = "#";
+                link.textContent = process.name;
+                link.dataset.processId = key;
+                link.className = "block p-2 rounded-md transition duration-200 text-gray-700 hover:bg-gray-200 font-medium";
+                link.onclick = (e) => {
+                    e.preventDefault();
+                    displayProcess(key);
+                };
+                processList.appendChild(link);
+            }
+        }
+
+        // Function to display a selected process
+        function displayProcess(processId) {
+            currentProcessId = processId;
+            const process = businessProcesses[processId];
+            if (!process) return;
+
+            // Update main content titles
+            currentProcessTitle.textContent = process.name;
+            currentProcessDescription.textContent = process.description;
+
+            // Clear and render flowchart
+            flowchartContainer.innerHTML = '';
+            process.flowchart.forEach((node, index) => {
+                const nodeElement = document.createElement('div');
+                nodeElement.className = "flowchart-node bg-white shadow-lg rounded-xl border border-gray-200 hover:shadow-xl hover:border-indigo-400 w-full md:w-56 text-sm";
+                nodeElement.innerHTML = `<h4 class="font-bold text-lg text-gray-800">${node.title}</h4>`;
+                nodeElement.dataset.nodeId = node.id;
+                nodeElement.onclick = () => showModal(node);
+                flowchartContainer.appendChild(nodeElement);
+
+                // Add vertical arrow after each node, except the last one
+                if (index < process.flowchart.length - 1) {
+                    const arrowElement = document.createElement('div');
+                    arrowElement.className = "flowchart-arrow-vertical";
+                    arrowElement.innerHTML = `
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-12 h-12 text-gray-400">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m0 0-5.25-5.25M12 19.5 17.25 14.25" />
+                        </svg>
+                    `;
+                    flowchartContainer.appendChild(arrowElement);
+                }
+            });
+        }
+
+        // Function to handle the search functionality
+        function handleSearch() {
+            const query = searchInput.value.toLowerCase();
+            const results = [];
+
+            // Iterate through all processes and their nodes
+            for (const processId in businessProcesses) {
+                const process = businessProcesses[processId];
+                process.flowchart.forEach(node => {
+                    if (node.title.toLowerCase().includes(query) || node.description.toLowerCase().includes(query)) {
+                        results.push({ ...node, processName: process.name, processId: processId });
+                    }
+                });
+            }
+
+            // Render search results or the default view
+            if (query.length > 0) {
+                currentProcessTitle.textContent = "Search Results";
+                currentProcessDescription.textContent = `Found ${results.length} results for "${query}"`;
+                flowchartContainer.innerHTML = '';
+                if (results.length > 0) {
+                    results.forEach(node => {
+                        const nodeElement = document.createElement('div');
+                        nodeElement.className = "flowchart-node bg-white shadow-lg rounded-xl border border-gray-200 hover:shadow-xl hover:border-indigo-400 w-full md:w-56 text-sm flex-col";
+                        nodeElement.innerHTML = `<h4 class="font-bold text-lg text-gray-800">${node.title}</h4><p class="text-xs text-gray-500 mt-1">${node.processName}</p>`;
+                        nodeElement.onclick = () => {
+                            displayProcess(node.processId);
+                            showModal(node);
+                        };
+                        flowchartContainer.appendChild(nodeElement);
+                    });
+                } else {
+                    flowchartContainer.innerHTML = '<p class="text-gray-500">No matching processes found.</p>';
+                }
+            } else {
+                // If search query is empty, return to default view
+                renderProcessList();
+                displayProcess(Object.keys(businessProcesses)[0]);
+            }
+        }
+
+        // Function to show the modal with node details
+        function showModal(node) {
+            modalTitle.textContent = node.title;
+            modalDescription.textContent = node.description;
+            modalWhy.textContent = node.why;
+            modalTeam.textContent = `Team: ${node.team}`;
+
+            modalDocuments.innerHTML = '';
+            node.documents.forEach(doc => {
+                const li = document.createElement('li');
+                li.innerHTML = `<a href="#" class="hover:underline text-indigo-600">${doc}</a>`;
+                modalDocuments.appendChild(li);
+            });
+
+            // Store the currently viewed node for editing
+            processModal.dataset.nodeId = node.id;
+            processModal.dataset.processId = currentProcessId;
+
+            // Show details view and hide edit form
+            modalContent.classList.remove('hidden');
+            editForm.classList.add('hidden');
+            editProcessBtn.classList.remove('hidden');
+
+            processModal.classList.remove('hidden');
+        }
+
+        // Function to toggle between details and edit view
+        function toggleEditMode(isEditing) {
+            if (isEditing) {
+                modalContent.classList.add('hidden');
+                editForm.classList.remove('hidden');
+                editProcessBtn.classList.add('hidden');
+
+                // Populate form with current node data
+                const nodeId = processModal.dataset.nodeId;
+                const processId = processModal.dataset.processId;
+                const process = businessProcesses[processId];
+                const node = process.flowchart.find(n => n.id === nodeId);
+
+                document.getElementById('editTitle').value = node.title;
+                document.getElementById('editDescription').value = node.description;
+                document.getElementById('editWhy').value = node.why;
+            } else {
+                modalContent.classList.remove('hidden');
+                editForm.classList.add('hidden');
+                editProcessBtn.classList.remove('hidden');
+            }
+        }
+
+        // Function to save edited data
+        function saveChanges(e) {
+            e.preventDefault();
+            const nodeId = processModal.dataset.nodeId;
+            const processId = processModal.dataset.processId;
+            const process = businessProcesses[processId];
+            const node = process.flowchart.find(n => n.id === nodeId);
+
+            // Update the in-memory data
+            node.title = document.getElementById('editTitle').value;
+            node.description = document.getElementById('editDescription').value;
+            node.why = document.getElementById('editWhy').value;
+
+            // In a real application, this is where you'd send data to the backend via API
+            // For this simulation, we just re-render the view
+            displayProcess(processId);
+            showModal(node);
+        }
+
+        // Event Listeners
+        searchInput.addEventListener('input', handleSearch);
+        closeModalBtn.addEventListener('click', () => processModal.classList.add('hidden'));
+        closeModalBtnFooter.addEventListener('click', () => processModal.classList.add('hidden'));
+        editProcessBtn.addEventListener('click', () => toggleEditMode(true));
+        cancelEditBtn.addEventListener('click', () => toggleEditMode(false));
+        processEditForm.addEventListener('submit', saveChanges);
+
+        // Initial rendering on page load
+        renderProcessList();
+        displayProcess(Object.keys(businessProcesses)[0]);
+    </script>
+</body>
+</html>
