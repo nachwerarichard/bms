@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Business Management System</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f3f4f6;
+        }
+        .flowchart-node {
+            transition: transform 0.2s, box-shadow 0.2s;
+            cursor: pointer;
+            word-wrap: break-word;
+            padding: 1rem;
+            min-height: 100px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+        }
+        .flowchart-node:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+        }
+        .modal-overlay {
+            background-color: rgba(0, 0, 0, 0.5);
+        }
+        .modal-content {
+            animation: slideIn 0.3s ease-out;
+        }
+        @keyframes slideIn {
+            from { transform: translateY(-50px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+        /* Style for the sidebar scrollbar */
+        .sidebar::-webkit-scrollbar {
+            width: 8px;
+        }
+        .sidebar::-webkit-scrollbar-track {
+            background: #e5e7eb;
+            border-radius: 10px;
+        }
+        .sidebar::-webkit-scrollbar-thumb {
+            background: #d1d5db;
+            border-radius: 10px;
+        }
+        .sidebar::-webkit-scrollbar-thumb:hover {
+            background: #9ca3af;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen flex flex-col">
+
+    <!-- Header -->
+    <header class="bg-white shadow-md p-4">
+        <div class="container mx-auto flex items-center justify-between">
+            <div class="flex items-center space-x-2">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-8 h-8 text-indigo-600">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 12h16.5m-16.5 0a2.25 2.25 0 0 1-2.25-2.25V6.75a2.25 2.25 0 0 1 2.25-2.25h16.5a2.25 2.25 0 0 1 2.25 2.25v3.938m-16.5 0h16.5m-16.5 0a2.25 2.25 0 0 0-2.25 2.25v3.938m-16.5-3.938h16.5m-16.5 0a2.25 2.25 0 0 1 2.25 2.25v3.938a2.25 2.25 0 0 1-2.25 2.25H3.75m16.5-16.5a2.25 2.25 0 0 1 2.25 2.25v3.938m-16.5-3.938a2.25 2.25 0 0 0-2.25 2.25v3.938a2.25 2.25 0 0 0 2.25 2.25h16.5a2.25 2.25 0 0 0 2.25-2.25V6.75a2.25 2.25 0 0 0-2.25-2.25H3.75Z" />
+                </svg>
+                <h1 class="text-2xl font-bold text-gray-800">BMS Dashboard</h1>
+            </div>
+            <div class="relative w-1/3">
+                <input type="text" id="searchInput" placeholder="Search processes..." class="w-full pl-10 pr-4 py-2 rounded-full border border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition duration-300">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" />
+                </svg>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content Area -->
+    <main class="flex-grow container mx-auto p-4 flex">
+        
+        <!-- Sidebar Navigation -->
+        <aside class="w-1/4 bg-white rounded-lg shadow p-4 mr-4 flex flex-col h-full sidebar overflow-y-auto">
+            <h2 class="text-xl font-semibold text-gray-800 mb-4">Process Areas</h2>
+            <div id="processList" class="space-y-2">
+                <!-- Process links will be dynamically injected here -->
+            </div>
+        </aside>
+
+        <!-- Main Content Display -->
+        <section class="flex-grow bg-white rounded-lg shadow p-6 flex flex-col items-center justify-start">
+            <div id="currentProcessTitle" class="text-3xl font-bold text-gray-800 mb-6 text-center">Select a Process to View</div>
+            <div id="currentProcessDescription" class="text-lg text-gray-600 mb-6 text-center"></div>
+            <div id="flowchartContainer" class="w-full flex justify-center items-center flex-wrap gap-6 p-4">
+                <!-- Flowchart nodes will be dynamically injected here -->
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Modal for Process Details and Editing -->
+    <div id="processModal" class="fixed inset-0 z-50 hidden flex items-center justify-center p-4 modal-overlay">
+        <div class="bg-white rounded-lg shadow-xl p-6 w-full max-w-2xl modal-content">
+            <div class="flex justify-between items-center pb-3 border-b-2 border-gray-200">
+                <h3 id="modalTitle" class="text-2xl font-semibold text-gray-800">Process Details</h3>
+                <button id="closeModalBtn" class="text-gray-500 hover:text-gray-800 focus:outline-none">
+                    <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                </button>
+            </div>
+            <div class="mt-4 space-y-4">
+                <div id="modalContent">
+                    <h4 class="text-xl font-medium text-gray-700">Description</h4>
+                    <p id="modalDescription" class="text-gray-600 mb-4"></p>
+                    <h4 class="text-xl font-medium text-gray-700">Why it's done</h4>
+                    <p id="modalWhy" class="text-gray-600 mb-4"></p>
+                    <h4 class="text-xl font-medium text-gray-700">Team Responsible</h4>
+                    <p id="modalTeam" class="text-gray-600 mb-4"></p>
+                    <h4 class="text-xl font-medium text-gray-700">Related Documents</h4>
+                    <ul id="modalDocuments" class="list-disc list-inside text-blue-600 space-y-1"></ul>
+                </div>
+
+                <!-- Editing Form (initially hidden) -->
+                <div id="editForm" class="hidden">
+                    <h4 class="text-xl font-medium text-gray-700 mb-2">Edit Details</h4>
+                    <form id="processEditForm" class="space-y-4">
+                        <div>
+                            <label for="editTitle" class="block text-sm font-medium text-gray-700">Title</label>
+                            <input type="text" id="editTitle" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2">
+                        </div>
+                        <div>
+                            <label for="editDescription" class="block text-sm font-medium text-gray-700">Description</label>
+                            <textarea id="editDescription" rows="4" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2"></textarea>
+                        </div>
+                        <div>
+                            <label for="editWhy" class="block text-sm font-medium text-gray-700">Why it's done</label>
+                            <textarea id="editWhy" rows="3" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2"></textarea>
+                        </div>
+                        <div class="flex justify-end space-x-2">
+                            <button type="button" id="cancelEditBtn" class="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-200 rounded-md hover:bg-gray-300 transition duration-300">Cancel</button>
+                            <button type="submit" class="px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-md hover:bg-indigo-700 transition duration-300">Save</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Modal Action Buttons -->
+            <div class="mt-6 pt-4 border-t-2 border-gray-200 flex justify-end space-x-3">
+                <button id="editProcessBtn" class="px-4 py-2 text-sm font-medium text-white bg-green-500 rounded-md hover:bg-green-600 transition duration-300">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4 mr-2 inline-block">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Zm0 0L19.5 7.125M18 14.25v2.25H6.75A2.25 2.25 0 0 0 4.5 18.75v2.25H2.25" />
+                    </svg>
+                    Edit
+                </button>
+                <button id="closeModalBtnFooter" class="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-200 rounded-md hover:bg-gray-300 transition duration-300">
+                    Close
+                </button>
+            </div>
+        </div>
+    </div>
+
+
+    <script>
+        // Data structure representing the business processes
+        // In a real application, this would be fetched from a MongoDB backend via an API
+        const businessProcesses = {
+            "sales": {
+                name: "Sales Process",
+                description: "This process outlines the steps from lead generation to closing a deal.",
+                flowchart: [
+                    { id: "1-1", title: "Lead Generation", description: "Identify and qualify potential customers.", team: "Marketing", why: "To fill the sales funnel with high-quality prospects.", documents: ["Lead-Gen-Policy.pdf"] },
+                    { id: "1-2", title: "Initial Contact", description: "Make first contact with the lead to understand their needs.", team: "Sales Team", why: "To establish a relationship and gather initial requirements.", documents: ["Sales-Script.docx"] },
+                    { id: "1-3", title: "Proposal & Quotation", description: "Create and present a tailored proposal and cost estimate.", team: "Sales Team, Finance", why: "To clearly define the solution and its value to the client.", documents: ["Proposal-Template.pptx", "Pricing-Guide.xlsx"] },
+                    { id: "1-4", title: "Negotiation & Closure", description: "Discuss terms and finalize the deal.", team: "Sales Team", why: "To secure the client's commitment and sign the contract.", documents: ["Contract-Template.pdf"] },
+                    { id: "1-5", title: "Post-Sale Handoff", description: "Transition the client to the support or implementation team.", team: "Sales Team, Implementation", why: "To ensure a smooth customer onboarding experience.", documents: ["Onboarding-Checklist.docx"] }
+                ]
+            },
+            "software-development": {
+                name: "Software Development Lifecycle",
+                description: "This outlines the agile process for developing and deploying software.",
+                flowchart: [
+                    { id: "2-1", title: "Requirements Gathering", description: "Collect and analyze user stories and business needs.", team: "Product Management, Development", why: "To define what the software needs to do.", documents: ["User-Story-Guide.pdf"] },
+                    { id: "2-2", title: "Design & Planning", description: "Design the system architecture and plan development sprints.", team: "Development, UX/UI", why: "To create a blueprint for development and set a clear roadmap.", documents: ["Architecture-Diagram.pptx", "Sprint-Planning-Tool.html"] },
+                    { id: "2-3", title: "Coding & Development", description: "Write and test the code for the new features.", team: "Development", why: "To build the software according to the design.", documents: ["Coding-Standards.pdf"] },
+                    { id: "2-4", title: "Quality Assurance", description: "Thoroughly test the software to find and fix bugs.", team: "QA Team", why: "To ensure the software is reliable and bug-free.", documents: ["Test-Plan.xlsx", "Bug-Report-Form.html"] },
+                    { id: "2-5", title: "Deployment & Release", description: "Deploy the new software features to production.", team: "DevOps, Development", why: "To make the new features available to users.", documents: ["Deployment-Checklist.pdf"] }
+                ]
+            },
+            "customer-support": {
+                name: "Customer Support Workflow",
+                description: "This describes the process for handling customer inquiries and issues.",
+                flowchart: [
+                    { id: "3-1", title: "Issue Triage", description: "Categorize and prioritize incoming customer tickets.", team: "Support Team", why: "To ensure critical issues are addressed first.", documents: ["SLA-Agreement.pdf", "Issue-Triage-Guide.pdf"] },
+                    { id: "3-2", title: "Troubleshooting & Diagnosis", description: "Investigate the root cause of the customer's problem.", team: "Support Team", why: "To find the correct solution quickly and efficiently.", documents: ["Common-Issues-FAQ.docx"] },
+                    { id: "3-3", title: "Resolution & Communication", description: "Apply the fix and inform the customer.", team: "Support Team", why: "To solve the problem and keep the customer informed of progress.", documents: ["Ticket-Response-Templates.docx"] },
+                    { id: "3-4", title: "Feedback & Follow-up", description: "Gather feedback to improve service and close the ticket.", team: "Support Team", why: "To ensure customer satisfaction and learn from the experience.", documents: ["Customer-Satisfaction-Survey.html"] }
+                ]
+            }
+        };
+
+        const processList = document.getElementById('processList');
+        const currentProcessTitle = document.getElementById('currentProcessTitle');
+        const currentProcessDescription = document.getElementById('currentProcessDescription');
+        const flowchartContainer = document.getElementById('flowchartContainer');
+        const searchInput = document.getElementById('searchInput');
+
+        const processModal = document.getElementById('processModal');
+        const closeModalBtn = document.getElementById('closeModalBtn');
+        const closeModalBtnFooter = document.getElementById('closeModalBtnFooter');
+        const editProcessBtn = document.getElementById('editProcessBtn');
+        const modalTitle = document.getElementById('modalTitle');
+        const modalDescription = document.getElementById('modalDescription');
+        const modalWhy = document.getElementById('modalWhy');
+        const modalTeam = document.getElementById('modalTeam');
+        const modalDocuments = document.getElementById('modalDocuments');
+
+        const modalContent = document.getElementById('modalContent');
+        const editForm = document.getElementById('editForm');
+        const processEditForm = document.getElementById('processEditForm');
+        const cancelEditBtn = document.getElementById('cancelEditBtn');
+
+        let currentProcessId = null;
+
+        // Function to render the main process navigation sidebar
+        function renderProcessList() {
+            processList.innerHTML = '';
+            for (const key in businessProcesses) {
+                const process = businessProcesses[key];
+                const link = document.createElement('a');
+                link.href = "#";
+                link.textContent = process.name;
+                link.dataset.processId = key;
+                link.className = "block p-2 rounded-md transition duration-200 text-gray-700 hover:bg-gray-200 font-medium";
+                link.onclick = (e) => {
+                    e.preventDefault();
+                    displayProcess(key);
+                };
+                processList.appendChild(link);
+            }
+        }
+
+        // Function to display a selected process
+        function displayProcess(processId) {
+            currentProcessId = processId;
+            const process = businessProcesses[processId];
+            if (!process) return;
+
+            // Update main content titles
+            currentProcessTitle.textContent = process.name;
+            currentProcessDescription.textContent = process.description;
+
+            // Clear and render flowchart
+            flowchartContainer.innerHTML = '';
+            process.flowchart.forEach(node => {
+                const nodeElement = document.createElement('div');
+                nodeElement.className = "flowchart-node bg-white shadow-lg rounded-xl border border-gray-200 hover:shadow-xl hover:border-indigo-400 w-full md:w-56 text-sm";
+                nodeElement.innerHTML = `<h4 class="font-bold text-lg text-gray-800">${node.title}</h4>`;
+                nodeElement.dataset.nodeId = node.id;
+                nodeElement.onclick = () => showModal(node);
+                flowchartContainer.appendChild(nodeElement);
+            });
+        }
+
+        // Function to handle the search functionality
+        function handleSearch() {
+            const query = searchInput.value.toLowerCase();
+            const results = [];
+
+            // Iterate through all processes and their nodes
+            for (const processId in businessProcesses) {
+                const process = businessProcesses[processId];
+                process.flowchart.forEach(node => {
+                    if (node.title.toLowerCase().includes(query) || node.description.toLowerCase().includes(query)) {
+                        results.push({ ...node, processName: process.name, processId: processId });
+                    }
+                });
+            }
+
+            // Render search results or the default view
+            if (query.length > 0) {
+                currentProcessTitle.textContent = "Search Results";
+                currentProcessDescription.textContent = `Found ${results.length} results for "${query}"`;
+                flowchartContainer.innerHTML = '';
+                if (results.length > 0) {
+                    results.forEach(node => {
+                        const nodeElement = document.createElement('div');
+                        nodeElement.className = "flowchart-node bg-white shadow-lg rounded-xl border border-gray-200 hover:shadow-xl hover:border-indigo-400 w-full md:w-56 text-sm flex-col";
+                        nodeElement.innerHTML = `<h4 class="font-bold text-lg text-gray-800">${node.title}</h4><p class="text-xs text-gray-500 mt-1">${node.processName}</p>`;
+                        nodeElement.onclick = () => {
+                            displayProcess(node.processId);
+                            showModal(node);
+                        };
+                        flowchartContainer.appendChild(nodeElement);
+                    });
+                } else {
+                    flowchartContainer.innerHTML = '<p class="text-gray-500">No matching processes found.</p>';
+                }
+            } else {
+                // If search query is empty, return to default view
+                renderProcessList();
+                displayProcess(Object.keys(businessProcesses)[0]);
+            }
+        }
+
+        // Function to show the modal with node details
+        function showModal(node) {
+            modalTitle.textContent = node.title;
+            modalDescription.textContent = node.description;
+            modalWhy.textContent = node.why;
+            modalTeam.textContent = `Team: ${node.team}`;
+
+            modalDocuments.innerHTML = '';
+            node.documents.forEach(doc => {
+                const li = document.createElement('li');
+                li.innerHTML = `<a href="#" class="hover:underline">${doc}</a>`;
+                modalDocuments.appendChild(li);
+            });
+
+            // Store the currently viewed node for editing
+            processModal.dataset.nodeId = node.id;
+            processModal.dataset.processId = currentProcessId;
+
+            // Show details view and hide edit form
+            modalContent.classList.remove('hidden');
+            editForm.classList.add('hidden');
+            editProcessBtn.classList.remove('hidden');
+
+            processModal.classList.remove('hidden');
+        }
+
+        // Function to toggle between details and edit view
+        function toggleEditMode(isEditing) {
+            if (isEditing) {
+                modalContent.classList.add('hidden');
+                editForm.classList.remove('hidden');
+                editProcessBtn.classList.add('hidden');
+
+                // Populate form with current node data
+                const nodeId = processModal.dataset.nodeId;
+                const processId = processModal.dataset.processId;
+                const process = businessProcesses[processId];
+                const node = process.flowchart.find(n => n.id === nodeId);
+
+                document.getElementById('editTitle').value = node.title;
+                document.getElementById('editDescription').value = node.description;
+                document.getElementById('editWhy').value = node.why;
+            } else {
+                modalContent.classList.remove('hidden');
+                editForm.classList.add('hidden');
+                editProcessBtn.classList.remove('hidden');
+            }
+        }
+
+        // Function to save edited data
+        function saveChanges(e) {
+            e.preventDefault();
+            const nodeId = processModal.dataset.nodeId;
+            const processId = processModal.dataset.processId;
+            const process = businessProcesses[processId];
+            const node = process.flowchart.find(n => n.id === nodeId);
+
+            // Update the in-memory data
+            node.title = document.getElementById('editTitle').value;
+            node.description = document.getElementById('editDescription').value;
+            node.why = document.getElementById('editWhy').value;
+
+            // In a real application, this is where you'd send data to the backend via API
+            // For this simulation, we just re-render the view
+            displayProcess(processId);
+            showModal(node);
+        }
+
+        // Event Listeners
+        searchInput.addEventListener('input', handleSearch);
+        closeModalBtn.addEventListener('click', () => processModal.classList.add('hidden'));
+        closeModalBtnFooter.addEventListener('click', () => processModal.classList.add('hidden'));
+        editProcessBtn.addEventListener('click', () => toggleEditMode(true));
+        cancelEditBtn.addEventListener('click', () => toggleEditMode(false));
+        processEditForm.addEventListener('submit', saveChanges);
+
+        // Initial rendering on page load
+        renderProcessList();
+        displayProcess(Object.keys(businessProcesses)[0]);
+    </script>
+</body>
+</html>
